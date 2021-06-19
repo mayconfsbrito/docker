@@ -10,3 +10,4 @@ services:
             - windows.env
         volumes:
             - ../../../volumes/mssql/data/.system/:/var/opt/mssql/data/
+            - /etc/localtime:/etc/localtime:ro
