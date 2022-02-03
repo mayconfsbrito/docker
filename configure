@@ -1,0 +1,81 @@
+#!/bin/bash
+if [ "$(id -u)" != "0" ]; then
+    echo""
+    echo "Esse script deve ser executado com \"sudo\" ou como usuário \"root\"" 1>&2
+    echo""
+   	exit 1
+fi
+
+
+shopt -s globstar
+read -p "PHP version:" PHP_VERSION;
+
+FILES=('pecl' 'phar' 'php-config' 'phpize' 'phpunit')
+STR_CALL_DOCKER_PREFIX='#!/bin/bash
+docker run -ti -v $(pwd):$(pwd) --rm --user $(id -u):$(id -g) --privileged '
+STR_CALL_DOCKER_SUFIX="mayconfsbrito/php-cli:${PHP_VERSION}"
+
+for i in ${FILES[@]}; do
+
+	PARAMS=' '${i}' "$@"'
+	echo "Creating ${i} link in /usr/local/bin/${i}"
+	echo "${STR_CALL_DOCKER_PREFIX}${STR_CALL_DOCKER_SUFIX}${PARAMS}" > /usr/local/bin/${i}
+	chmod +x /usr/local/bin/${i}
+	echo ''
+
+done;
+
+echo "#!/bin/bash
+docker run \
+	-ti \
+	-v "'$(pwd)'":"'$(pwd)'" \
+	-w "'$(pwd)'" \
+	--rm \
+	-p 8001:8000 \
+	--user "'$(id -u):$(id -g)'" \
+	--privileged \
+    --link docker_mysql_1:mysql \
+    --network docker_myapp \
+	mayconfsbrito/php-cli:${PHP_VERSION} \
+	php "'"$@"' > /usr/local/bin/php
+echo "#!/bin/bash
+docker run \
+    --interactive \
+    --rm \
+	--privileged \
+    --user "'$(id -u)'":"'$(id -g)'" \
+    --volume /etc/passwd:/etc/passwd:ro \
+    --volume /etc/group:/etc/group:ro \
+    --volume /home/maycon/Softwares/Desenvolvimento/composer:/composer \
+    --volume "'$(pwd)'":"'$(pwd)'" \
+    -w "'$(pwd)'" \
+    composer:latest "'"$@"' > /usr/bin/composer
+
+echo "/run.sh" > /etc/init.d/docker-composer-run
+chmod +x /etc/init.d/docker-composer-run
+
+if [ ! -d "/usr/local/lib/mysql/" ]; then
+	mkdir -p /usr/local/lib/mysql/
+fi
+
+# Run the script of ENVIRONMENT VARS
+read -p "nome do usuario do sistema: " USER_SYSTEM;
+read -p "caminho completo do diretorio de desenvolvimento: " ENVIRONMENT_PATH;
+read -p "nome do usuario (MySQL): " USER_MYSQL;
+read -p "nome do banco de dados (MySQL): " DATABASE_NAME;
+read -sp "senha do banco de dados mysql (${USER_MYSQL}): " PASS_MYSQL;
+echo "";
+read -sp "senha do banco de dados mysql (root): " PASS_MYSQL_ROOT;
+echo "";
+
+ENV_FILE=/etc/profile.d/env_docker
+touch ${ENV_FILE}
+echo "
+export USER_SYSTEM='${USER_SYSTEM}'
+export ENVIRONMENT_PATH='${ENVIRONMENT_PATH}'
+export MYSQL_USER='${USER_MYSQL}'
+export MYSQL_DATABASE_NAME='${DATABASE_NAME}'
+export MYSQL_PASSWORD='${PASS_MYSQL}'
+export MYSQL_PASSWORD_ROOT='${PASS_MYSQL_ROOT}'
+" > ${ENV_FILE}
+source ${ENV_FILE}

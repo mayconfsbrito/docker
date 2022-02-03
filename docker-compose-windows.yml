@@ -1,0 +1,13 @@
+version: '2'
+services:
+    mssql:
+        container_name: mssql-2019
+        image: mcr.microsoft.com/mssql/server:2019-latest
+        restart: always
+        ports:
+            - "1433:1433"
+        env_file:
+            - windows.env
+        volumes:
+            - ../../../volumes/mssql/data/.system:/var/opt/mssql/data
+            - /etc/localtime:/etc/localtime:ro

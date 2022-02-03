@@ -1,0 +1,12 @@
+[Unit]
+Description=The PHP 7.1 FastCGI Process Manager
+After=network.target
+
+[Service]
+Type=simple
+PIDFile=/opt/php-7.1/var/run/php-fpm.pid
+ExecStart=/opt/php-7.1/sbin/php-fpm --nodaemonize --fpm-config /opt/php-7.1/etc/php-fpm.conf
+ExecReload=/bin/kill -USR2 $MAINPID
+
+[Install]
+WantedBy=multi-user.target
